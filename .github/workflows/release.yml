@@ -13,7 +13,7 @@
 #
 # No long-lived secrets: OIDC only (trust/03 §3.3). Every action is pinned by version (trust/03 §4).
 
-nname: release
+name: release
 
 on:
   push:
