@@ -1,0 +1,20 @@
+[package]
+name = "archiv-export"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Archiv export: vectored assembly of governed OTLP payloads — chained Bytes, no contiguous rebuild"
+
+[dependencies]
+archiv-ingest.workspace = true
+archiv-pipeline.workspace = true
+bytes.workspace = true
+smallvec.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+archiv-redact.workspace = true
+
+[lints]
+workspace = true
