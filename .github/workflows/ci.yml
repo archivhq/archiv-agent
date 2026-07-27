@@ -1,0 +1,40 @@
+# Continuous integration for archiv-agent (Community Edition).
+# lint -> test -> dependency scan. Action versions are pinned to exact tags.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4.2.2
+      # rust-toolchain.toml pins the compiler + rustfmt/clippy; rustup installs it on first use.
+      - run: rustup show
+      - uses: Swatinem/rust-cache@v2.7.8
+      - name: Format
+        run: cargo fmt --all --check
+      - name: Clippy + Memory-Law gate
+        run: bash scripts/lint-no-clone.sh
+      - name: Test
+        run: cargo test
+      - name: Install dependency scanners
+        uses: taiki-e/install-action@v2.44.1
+        with:
+          tool: cargo-audit,cargo-deny
+      - name: cargo audit (RustSec advisories)
+        run: cargo audit
+      - name: cargo deny (licenses, bans, sources, advisories)
+        run: cargo deny check

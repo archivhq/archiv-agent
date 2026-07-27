@@ -1,0 +1,52 @@
+# cargo-deny configuration — Rust dependency hygiene gate.
+# Run: `cargo deny check` (advisories, bans, licenses, sources).
+
+[graph]
+# Audit every target the agent actually ships to, not just the host triple.
+all-features = true
+
+[advisories]
+version = 2
+yanked = "warn"
+
+[licenses]
+version = 2
+confidence-threshold = 0.9
+# Permissive licenses only (trust/03 §3.2: allowlist Apache-2.0 / MIT / BSD). No copyleft that would
+# jeopardize the Apache-2.0 Community edition.
+allow = [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "MIT",
+    "MITNFA",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "CC0-1.0",
+    "MPL-2.0",
+    "BSL-1.0",             # Boost Software License (xxhash-rust) — OSI-approved permissive.
+    "CDLA-Permissive-2.0", # Community Data License (webpki-roots CA bundle) — permissive.
+]
+
+# `ring` and a few crypto crates ship a bespoke license file that SPDX scanners can't classify;
+# clarify them explicitly rather than widening the allowlist.
+[[licenses.clarify]]
+crate = "ring"
+expression = "MIT AND ISC AND OpenSSL"
+license-files = [{ path = "LICENSE", hash = 0xbd0eed23 }]
+
+[bans]
+multiple-versions = "warn" # surface duplicate versions; not release-blocking (transitive churn).
+# Our only wildcards are the version-less `{ path = ... }` deps between internal workspace crates
+# (archiv-config, archiv-pipeline, …). `allow-wildcard-paths` can't exempt them because the crates
+# are publishable-by-default, so we `warn` (surfaces any real crates.io `*` without failing on the
+# intentional internal path deps).
+wildcards = "warn"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

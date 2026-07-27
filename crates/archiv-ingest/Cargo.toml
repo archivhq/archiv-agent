@@ -1,0 +1,20 @@
+[package]
+name = "archiv-ingest"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Archiv OTLP ingest: zero-copy logs parser producing RecordView offsets"
+
+[dependencies]
+archiv-pipeline.workspace = true
+smallvec.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+archiv-redact.workspace = true
+archiv-sampling.workspace = true
+bytes.workspace = true
+
+[lints]
+workspace = true

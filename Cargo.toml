@@ -1,0 +1,105 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/archiv-config",
+    "crates/archiv-export",
+    "crates/archiv-ingest",
+    "crates/archiv-metrics",
+    "crates/archiv-pipeline",
+    "crates/archiv-redact",
+    "crates/archiv-sampling",
+]
+# Explicit default set so bare `cargo build`/`test`/`clippy` cover the root binary
+# AND every workspace crate. Without it, a workspace with a root package builds
+# only the root package by default.
+default-members = [
+    ".",
+    "crates/archiv-config",
+    "crates/archiv-export",
+    "crates/archiv-ingest",
+    "crates/archiv-metrics",
+    "crates/archiv-pipeline",
+    "crates/archiv-redact",
+    "crates/archiv-sampling",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+rust-version = "1.85"
+
+[workspace.dependencies]
+bytes = "1"
+regex = "1"
+serde = { version = "1", features = ["derive"] }
+# serde_norway: actively maintained drop-in fork of the deprecated serde_yaml
+# (same API surface).
+serde_norway = "0.9"
+smallvec = "1"
+thiserror = "2"
+xxhash-rust = { version = "0.8", features = ["xxh64"] }
+
+archiv-config = { path = "crates/archiv-config" }
+archiv-export = { path = "crates/archiv-export" }
+archiv-ingest = { path = "crates/archiv-ingest" }
+archiv-metrics = { path = "crates/archiv-metrics" }
+archiv-pipeline = { path = "crates/archiv-pipeline" }
+archiv-redact = { path = "crates/archiv-redact" }
+archiv-sampling = { path = "crates/archiv-sampling" }
+
+# The Memory Law + panic hygiene are enforced, not advisory.
+[workspace.lints.clippy]
+disallowed_methods = "deny"
+unwrap_used = "deny"
+expect_used = "deny"
+
+# Fail-open requires unwinding panics.
+[profile.release]
+panic = "unwind"
+lto = "thin"
+codegen-units = 1
+
+[package]
+name = "archiv-agent"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+archiv-config.workspace = true
+archiv-export.workspace = true
+archiv-ingest.workspace = true
+archiv-metrics.workspace = true
+archiv-pipeline.workspace = true
+archiv-redact.workspace = true
+archiv-sampling.workspace = true
+arc-swap = "1"
+async-channel = "2"
+bytes.workspace = true
+http-body-util = "0.1"
+hyper = { version = "1", features = ["http1", "http2", "server", "client"] }
+hyper-rustls = { version = "0.27", default-features = false, features = ["native-tokio", "webpki-tokio", "http1", "ring"] }
+hyper-util = { version = "0.1", features = ["tokio", "server-graceful", "client-legacy", "http1", "http2"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+thiserror.workspace = true
+tokio = { version = "1", features = ["rt-multi-thread", "net", "signal", "macros", "sync", "time", "fs", "io-util"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dev-dependencies]
+archiv-config.workspace = true
+# Integration tests build `AppState`, whose pipeline sits behind an `ArcSwap`.
+arc-swap = "1"
+bytes.workspace = true
+http-body-util = "0.1"
+hyper = { version = "1", features = ["http1", "http2", "server", "client"] }
+hyper-util = { version = "0.1", features = ["tokio", "client-legacy", "http1", "http2"] }
+rcgen = "0.13"
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+tokio = { version = "1", features = ["rt-multi-thread", "net", "macros", "sync", "time"] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring"] }
+
+[lints]
+workspace = true

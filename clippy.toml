@@ -1,0 +1,15 @@
+# The Memory Law (docs/engineering/02-rust-standards.md §2,
+# docs/architecture/core/02-zero-copy-pipeline.md §3.3).
+# Payload deep copies are prohibited; Bytes refcounts and range views only.
+#
+# Coverage note (verified on the pinned toolchain): `Vec::clone` and
+# `[T]::to_vec` are trait-impl / primitive-impl methods that clippy's
+# disallowed-methods cannot target reliably — they are enforced by the
+# `lint-no-clone` grep gate instead (agent/scripts/lint-no-clone.sh).
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+
+disallowed-methods = [
+  { path = "alloc::string::String::from_utf8", reason = "no heap strings for payload content — use str::from_utf8 (borrowing) (docs/architecture/core/02)" },
+  { path = "alloc::borrow::ToOwned::to_owned", reason = "no owned copies of payload slices — use Bytes/ranges (docs/architecture/core/02)" },
+]

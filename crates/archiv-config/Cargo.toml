@@ -1,0 +1,17 @@
+[package]
+name = "archiv-config"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Archiv agent config: fail-fast YAML loader mapping to pipeline domain types (Community)"
+
+[dependencies]
+archiv-redact.workspace = true
+serde.workspace = true
+serde_norway.workspace = true
+thiserror.workspace = true
+xxhash-rust.workspace = true
+
+[lints]
+workspace = true

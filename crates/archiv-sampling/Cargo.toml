@@ -1,0 +1,16 @@
+[package]
+name = "archiv-sampling"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Archiv deterministic sampling: xxHash64(seed 0) over trace_id, fleet-consistent"
+
+[dependencies]
+xxhash-rust.workspace = true
+
+[dev-dependencies]
+serde_json = "1"
+
+[lints]
+workspace = true
