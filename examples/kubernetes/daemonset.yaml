@@ -1,0 +1,145 @@
+# archiv-agent (Community Edition) — raw DaemonSet manifests.
+# Prefer the Helm chart (deploy/helm/archiv-agent) for real deployments; this is the no-Helm path.
+#
+#   kubectl apply -f examples/kubernetes/daemonset.yaml
+#
+# PRODUCTION: pin the image by @sha256: digest (not the :0.1.0 tag) and verify its cosign signature.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: observability
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: archiv-agent
+  namespace: observability
+# The agent needs no Kubernetes API access.
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: archiv-agent
+  namespace: observability
+data:
+  # Schema: config/agent.example.yaml. Empty sections are off; this is a pass-through agent.
+  # Set export.otlp_endpoint (and sampling/redaction rules) to turn governance on.
+  agent.yaml: |
+    ingest:
+      grpc_endpoint: "0.0.0.0:4317"
+      http_endpoint: "0.0.0.0:4318"
+    sampling:
+      default_target: 100
+    export:
+      spool_dir: "/var/lib/archiv/spool"
+      spool_max_bytes: 536870912
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: archiv-agent
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: archiv-agent
+    app.kubernetes.io/part-of: archiv
+    app.kubernetes.io/component: data-plane
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: archiv-agent
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: archiv-agent
+        app.kubernetes.io/part-of: archiv
+        app.kubernetes.io/component: data-plane
+    spec:
+      serviceAccountName: archiv-agent
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: archiv-agent
+          image: ghcr.io/archivhq/archiv-agent:0.1.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - name: ARCHIV_CONFIG
+              value: /etc/archiv/agent.yaml
+            - name: RUST_LOG
+              value: "info"
+          ports:
+            - name: otlp-grpc
+              containerPort: 4317
+            - name: otlp-http
+              containerPort: 4318
+          livenessProbe:
+            tcpSocket:
+              port: otlp-grpc
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          readinessProbe:
+            tcpSocket:
+              port: otlp-http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 250m
+              memory: 48Mi
+            limits:
+              cpu: "1"
+              memory: 64Mi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/archiv
+              readOnly: true
+            - name: spool
+              mountPath: /var/lib/archiv/spool
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: config
+          configMap:
+            name: archiv-agent
+        - name: spool
+          emptyDir:
+            sizeLimit: 1Gi
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: archiv-agent
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: archiv-agent
+spec:
+  type: ClusterIP
+  internalTrafficPolicy: Cluster
+  selector:
+    app.kubernetes.io/name: archiv-agent
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: otlp-grpc
+    - name: otlp-http
+      port: 4318
+      targetPort: otlp-http

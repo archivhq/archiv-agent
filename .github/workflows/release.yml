@@ -1,0 +1,179 @@
+# Release pipeline for archiv-agent (Community Edition).
+#
+# Trigger: pushing a version tag (v1.2.3). Enforces the trust/03 §3.3 gate order:
+#   lint -> tests -> dep scans -> build -> SBOM -> scan -> sign -> attest -> push.
+# The image is pushed by digest, then cosign keyless-signed + SBOM/SLSA-attested; the community
+# binary tarball is checksummed and cosign sign-blob'd onto the GitHub Release.
+#
+# The signing identity produced here is exactly what deployments verify:
+#   cosign verify ghcr.io/archivhq/archiv-agent@<digest> \
+#     --certificate-identity-regexp \
+#       '^https://github.com/archivhq/archiv-agent/\.github/workflows/release\.yml@refs/tags/v.*$' \
+#     --certificate-oidc-issuer https://token.actions.githubusercontent.com
+#
+# No long-lived secrets: OIDC only (trust/03 §3.3). Every action is pinned by version (trust/03 §4).
+
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+# Default to least privilege; jobs widen as needed.
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }} # ghcr.io/archivhq/archiv-agent
+
+jobs:
+  # ── Gate order part 1 (trust/03 §3.3): lint -> tests -> dep scans. Must be green before we build.
+  checks:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - run: rustup show
+      - uses: Swatinem/rust-cache@v2.7.8
+      - name: Format
+        run: cargo fmt --all --check
+      - name: Clippy + Memory-Law gate
+        run: bash scripts/lint-no-clone.sh
+      - name: Test
+        run: cargo test --all --locked
+      - name: Install supply-chain scanners
+        run: |
+          cargo install cargo-audit --locked
+          cargo install cargo-deny --locked
+      - name: cargo audit (RustSec advisories)
+        run: cargo audit
+      - name: cargo deny (licenses, bans, sources, advisories)
+        run: cargo deny check
+
+  # ── Gate order part 2: build -> SBOM -> scan -> sign -> attest -> push (image, by digest).
+  image:
+    needs: checks
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write # push to GHCR
+      id-token: write # keyless cosign (Fulcio OIDC)
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Reproducible-build timestamp (commit time)
+        id: sde
+        run: echo "epoch=$(git log -1 --pretty=%ct)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU (arm64 emulation)
+        uses: docker/setup-qemu-action@v3.3.0
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3.8.0
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image metadata
+        id: meta
+        uses: docker/metadata-action@v5.6.1
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Build and push (multi-arch, with SLSA provenance + SBOM)
+        id: build
+        uses: docker/build-push-action@v6.10.0
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            SOURCE_DATE_EPOCH=${{ steps.sde.outputs.epoch }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # BuildKit attaches SLSA provenance (max) + an SBOM to the image index (trust/03 §3.1).
+          provenance: mode=max
+          sbom: true
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3.7.0
+      - name: Install syft
+        uses: anchore/sbom-action/download-syft@v0.17.9
+
+      - name: Generate SBOM (SPDX JSON)
+        run: syft "${IMAGE}@${{ steps.build.outputs.digest }}" -o spdx-json=sbom.spdx.json
+
+      - name: Vulnerability scan (fail on CRITICAL/HIGH)
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          image-ref: ${{ env.IMAGE }}@${{ steps.build.outputs.digest }}
+          format: table
+          exit-code: "1"
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+
+      - name: Sign the image (cosign keyless)
+        run: cosign sign --yes "${IMAGE}@${{ steps.build.outputs.digest }}"
+
+      - name: Attest the SBOM (cosign keyless)
+        run: |
+          cosign attest --yes \
+            --predicate sbom.spdx.json \
+            --type spdxjson \
+            "${IMAGE}@${{ steps.build.outputs.digest }}"
+
+  # ── Community binary tarball: checksummed + cosign sign-blob, attached to the GitHub Release.
+  binaries:
+    needs: checks
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # create the GitHub Release
+      id-token: write # keyless cosign sign-blob
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - run: rustup show
+      - uses: Swatinem/rust-cache@v2.7.8
+
+      - name: Build release binary (x86_64-gnu)
+        run: cargo build --release --locked --bin archiv-agent
+
+      - name: Package tarball + checksum
+        id: pkg
+        run: |
+          ver="${GITHUB_REF_NAME#v}"
+          name="archiv-agent-${ver}-x86_64-unknown-linux-gnu"
+          install -Dm755 target/release/archiv-agent "dist/${name}/archiv-agent"
+          cp LICENSE README.md "dist/${name}/"
+          tar -C dist -czf "${name}.tar.gz" "${name}"
+          sha256sum "${name}.tar.gz" > "${name}.tar.gz.sha256"
+          echo "tarball=${name}.tar.gz" >> "$GITHUB_OUTPUT"
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3.7.0
+
+      - name: Sign the tarball (cosign keyless sign-blob)
+        run: |
+          cosign sign-blob --yes \
+            --output-signature "${{ steps.pkg.outputs.tarball }}.sig" \
+            --output-certificate "${{ steps.pkg.outputs.tarball }}.pem" \
+            "${{ steps.pkg.outputs.tarball }}"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2.2.1
+        with:
+          files: |
+            ${{ steps.pkg.outputs.tarball }}
+            ${{ steps.pkg.outputs.tarball }}.sha256
+            ${{ steps.pkg.outputs.tarball }}.sig
+            ${{ steps.pkg.outputs.tarball }}.pem
+          generate_release_notes: true

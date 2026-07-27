@@ -20,8 +20,3 @@ flamegraph.svg
 /.vscode/
 /.idea/
 *.swp
-
-scripts/
-tests/
-examples/
-gates/

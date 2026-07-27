@@ -1,0 +1,121 @@
+# archiv-agent (Community Edition) Helm values.
+#
+# This chart deploys ONLY the open-source agent: local YAML config, deterministic sampling, regex
+# redaction, fail-open, disk spool. There is no control plane, no account, and nothing phones home
+# (CLAUDE.md §3 — Community runs with zero Enterprise code paths). For the Enterprise bundle
+# (agent + control-plane + web + admission policy) use the umbrella chart in the monorepo.
+
+image:
+  registry: ghcr.io
+  repository: archivhq/archiv-agent
+  # Pinned tag — NEVER "latest" (trust/03 §4). Empty ⇒ the chart's appVersion.
+  # For production, prefer pinning `digest` below and verifying it with cosign (see NOTES).
+  tag: ""
+  # Immutable digest, e.g. "sha256:abc123…". When set it WINS over tag (recommended for prod).
+  digest: ""
+  pullPolicy: IfNotPresent
+
+# Names of image pull secrets, for a private mirror of the image.
+imagePullSecrets: []
+
+# Extra name suffix / full override for chart resource names.
+nameOverride: ""
+fullnameOverride: ""
+
+# DaemonSet: exactly one agent per node; node-local workloads send OTLP to the agent's Service.
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+
+# Expose 4317/4318 on the host so senders outside the cluster network (or hostNetwork pods) can
+# reach the node-local agent directly. Off by default (ClusterIP Service is the usual path).
+hostPort:
+  enabled: false
+
+# RUST_LOG value for the agent (e.g. "info", "archiv_agent=debug").
+logLevel: info
+
+# ── Agent configuration ──────────────────────────────────────────────────────────────────────
+# Rendered verbatim into a ConfigMap and mounted at /etc/archiv/agent.yaml (ARCHIV_CONFIG).
+# Schema: config/agent.example.yaml. An empty `config: {}` runs a pure pass-through agent — safe to
+# insert into a live pipeline first and enable governance second.
+config:
+  ingest:
+    grpc_endpoint: "0.0.0.0:4317" # OTLP/gRPC
+    http_endpoint: "0.0.0.0:4318" # OTLP/HTTP
+    channel_capacity: 8192
+  sampling:
+    default_target: 100 # percent kept; 100 = sampling off
+    rules: []
+    # Sampling is deterministic over trace_id — sample COST telemetry only, and pin keep-100%
+    # rules to security/audit namespaces (see config/agent.example.yaml).
+  redaction:
+    regex_rules: []
+  export:
+    # otlp_endpoint: "https://otlp.your-vendor.com:4318"  # unset ⇒ receive-only (no forwarding)
+    spool_dir: "/var/lib/archiv/spool"
+    spool_max_bytes: 536870912 # 512 MiB
+  limits:
+    max_body_bytes: 4194304 # 4 MiB
+
+# Durable destination spool volume. emptyDir is ephemeral (cleared on pod restart); use hostPath
+# for a node-durable spool that survives agent restarts.
+spool:
+  type: emptyDir # emptyDir | hostPath
+  hostPath: /var/lib/archiv/spool
+  sizeLimit: 1Gi
+
+# Agent memory budget is ≤ 50 MB RSS at 10k EPS (CLAUDE.md §6); the limit adds headroom.
+resources:
+  requests:
+    cpu: 250m
+    memory: 48Mi
+  limits:
+    cpu: "1"
+    memory: 64Mi
+
+# Schedule on every node. Add tolerations (e.g. the control-plane taint) for full-fleet coverage.
+tolerations: []
+nodeSelector: {}
+affinity: {}
+priorityClassName: ""
+
+# Graceful drain: SIGTERM flushes the spool to the destination before exit — give it room.
+terminationGracePeriodSeconds: 30
+
+# Distroless nonroot (uid/gid 65532); keep the pod locked down.
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+service:
+  enabled: true
+  type: ClusterIP
+  clusterIP: "" # "" ⇒ assigned; "None" ⇒ headless
+  # "Local" routes senders to the agent on their OWN node (ideal for a DaemonSet); "Cluster"
+  # load-balances across all agents.
+  internalTrafficPolicy: Cluster
+  annotations: {}
+
+# Extra environment variables appended to the container.
+env: []
+
+# Extra pod annotations/labels.
+podAnnotations: {}
+podLabels: {}

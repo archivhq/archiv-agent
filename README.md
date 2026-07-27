@@ -17,7 +17,7 @@ Apache 2.0. No control plane, no account, no phone-home. Drop it into a live pip
 transparent proxy and turn governance on when you're ready.
 
 ```sh
-docker run -p 4317:4317 -p 4318:4318 ghcr.io/archiv/archiv-agent:latest
+docker run -p 4317:4317 -p 4318:4318 ghcr.io/archivhq/archiv-agent:latest
 ```
 
 ## Architecture
@@ -83,7 +83,7 @@ pipeline first and enable governance second.
 
 ```sh
 # Run it
-docker run -p 4317:4317 -p 4318:4318 ghcr.io/archiv/archiv-agent:latest
+docker run -p 4317:4317 -p 4318:4318 ghcr.io/archivhq/archiv-agent:latest
 
 # Or build from source (stable Rust)
 cargo build --release && ./target/release/archiv-agent
@@ -140,11 +140,8 @@ ARCHIV_CONFIG=/etc/archiv/agent.yaml archiv-agent
 Sampling savings are a direct function of your own severity mix, not a property of Archiv.
 For a workload that is 70% `DEBUG`, the rule above keeps 10% of that 70% and all of the
 remaining 30%, so ingestion drops to 37% of baseline. Substitute your own distribution — the
-agent reports observed keep/drop counters at `/metrics` so you can measure the real number
-before committing to a policy.
-
-> Run the agent in `dry_run: true` to emit those counters while forwarding everything, and
-> see the savings a policy _would_ produce before it drops anything.
+agent logs observed keep/drop counters to stdout once per 10-second window (numbers only, as
+`archiv.metrics` lines), so you can measure the real number before committing to a policy.
 
 ### Sampling determinism
 
@@ -180,31 +177,52 @@ traces, and a policy can be replayed against past data for audit.
 Reproduce on your own hardware:
 
 ```sh
-cargo bench                 # microbenchmarks
-./bench/run.sh              # end-to-end load test, prints the table above
+cargo run --release --example perf   # core CPU: prints G1 EPS + G2 p99, PASS/FAIL
+gates/g1-throughput/run.sh           # networked k6 load + RSS budget (needs k6 on PATH)
 ```
 
-Full methodology and raw results: [`bench/README.md`](bench/README.md).
+Full methodology and gate status: [`gates/README.md`](gates/README.md).
 
 ## Deploying
 
-### Kubernetes (Helm)
+Two paths, depending on where it runs.
+
+### On your machine — Docker
+
+The quickest way to try it, or to run a single node. One container, no orchestration:
+
+```sh
+# Zero-config pass-through — forwards everything untouched.
+docker run -p 4317:4317 -p 4318:4318 ghcr.io/archivhq/archiv-agent:latest
+
+# With governance on — mount a config and point ARCHIV_CONFIG at it.
+docker run -p 4317:4317 -p 4318:4318 \
+  -v "$PWD/agent.yaml:/etc/archiv/agent.yaml:ro" \
+  -e ARCHIV_CONFIG=/etc/archiv/agent.yaml \
+  ghcr.io/archivhq/archiv-agent:latest
+```
+
+### On a server / cluster — Helm
+
+Across a fleet the agent runs as a DaemonSet, one per node — the extra orchestration layer a
+server deployment needs, and where remote endpoints, resource limits, and rolling updates
+belong. From a checkout (works today, no chart repo needed):
+
+```sh
+helm install archiv-agent ./deploy/helm/archiv-agent \
+  -n observability --create-namespace \
+  --set config.export.otlp_endpoint=https://otlp.your-vendor.com:4318
+```
+
+Once the chart repo is published:
 
 ```sh
 helm repo add archiv https://charts.archiv.dev
-helm install archiv-agent archiv/archiv-agent \
-  -n observability --create-namespace \
-  --set config.export.otlpEndpoint=https://otlp.your-vendor.com:4318
+helm install archiv-agent archiv/archiv-agent -n observability --create-namespace
 ```
 
-Runs as a DaemonSet, one agent per node. Chart reference: [`deploy/helm/`](deploy/helm/).
-
-### Other examples
-
-- [`examples/kubernetes/`](examples/kubernetes/) — raw DaemonSet manifests
-- [`examples/docker-compose/`](examples/docker-compose/) — local development
-- [`examples/terraform/`](examples/terraform/) — ECS and EC2 modules
-- [`examples/collector/`](examples/collector/) — running alongside an OTel Collector gateway
+Chart + values: [`deploy/helm/archiv-agent`](deploy/helm/archiv-agent). No Helm? Raw
+manifests: [`examples/kubernetes/`](examples/kubernetes/).
 
 ## Open_source and Enterprise
 

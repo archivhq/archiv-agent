@@ -1,0 +1,29 @@
+apiVersion: v2
+name: archiv-agent
+description: >-
+  Archiv agent (Community Edition) — a fail-open OTLP governance proxy that runs as a per-node
+  DaemonSet: deterministic sampling, regex PII redaction (CWE-532), and a durable disk spool.
+  Apache-2.0; no control plane, no account, no phone-home.
+type: application
+# Chart version — bump on chart changes, independent of the app.
+version: 0.1.0
+# archiv-agent image version this chart defaults to.
+appVersion: "0.1.0"
+home: https://archiv.dev
+icon: https://archiv.dev/icon.png
+sources:
+  - https://github.com/archivhq/archiv-agent
+keywords:
+  - observability
+  - otlp
+  - telemetry-governance
+  - sampling
+  - redaction
+  - finops
+  - daemonset
+maintainers:
+  - name: Archiv
+    url: https://github.com/archivhq/archiv-agent
+annotations:
+  category: Observability
+  licenses: Apache-2.0

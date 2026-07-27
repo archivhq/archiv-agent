@@ -1,0 +1,35 @@
+archiv-agent (Community Edition) is installed as a DaemonSet in namespace "{{ .Release.Namespace }}".
+
+Image:
+  {{ include "archiv-agent.image" . }}
+
+1. Point your OTLP exporters at the node-local agent:
+
+{{- if .Values.service.enabled }}
+     OTLP/gRPC  ->  {{ include "archiv-agent.fullname" . }}.{{ .Release.Namespace }}.svc:4317
+     OTLP/HTTP  ->  {{ include "archiv-agent.fullname" . }}.{{ .Release.Namespace }}.svc:4318
+{{- else }}
+     (Service disabled — reach the agent via the node IP; hostPort.enabled={{ .Values.hostPort.enabled }})
+{{- end }}
+
+   Example (OpenTelemetry Collector):
+     exporters:
+       otlp:
+         endpoint: {{ include "archiv-agent.fullname" . }}.{{ .Release.Namespace }}.svc:4317
+
+2. With no `config`, the agent forwards everything untouched — safe to insert first, then turn
+   governance on. Set sampling/redaction/export under `--set-file` or a values file
+   (schema: config/agent.example.yaml).
+
+{{- if not .Values.image.digest }}
+
+3. PRODUCTION: pin the image by digest and verify its signature (trust/03). The agent image is
+   cosign keyless-signed by the release workflow:
+
+     cosign verify {{ .Values.image.registry }}/{{ .Values.image.repository }}@<digest> \
+       --certificate-identity-regexp \
+         '^https://github.com/archivhq/archiv-agent/\.github/workflows/release\.yml@refs/tags/v.*$' \
+       --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+   Then set: --set image.digest=sha256:<digest>
+{{- end }}
