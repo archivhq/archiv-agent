@@ -63,7 +63,7 @@ jobs:
 
       - name: Install supply-chain scanners
         run: |
-          cargo install cargo-audit --version 0.21.1 --locked
+          cargo install cargo-audit --version 0.22.0 --locked
           cargo install cargo-deny --version 0.18.3 --locked
 
       - name: cargo audit
