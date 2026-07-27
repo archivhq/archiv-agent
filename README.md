@@ -224,9 +224,9 @@ helm install archiv-agent archiv/archiv-agent -n observability --create-namespac
 Chart + values: [`deploy/helm/archiv-agent`](deploy/helm/archiv-agent). No Helm? Raw
 manifests: [`examples/kubernetes/`](examples/kubernetes/).
 
-## Open_source and Enterprise
+## Open_Source and Enterprise
 
-This repository is the complete Open_source Edition — full sampling and redaction, fail-open
+This repository is the complete Open_Source Edition — full sampling and redaction, fail-open
 resiliency, local YAML config. It runs forever, free, with no control plane and no
 limitations bolted on to push you to upgrade.
 

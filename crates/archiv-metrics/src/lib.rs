@@ -17,7 +17,7 @@
 //! reads): the caller supplies wall-clock timestamps at flush, keeping the core
 //! deterministically testable. The Enterprise build (`enterprise/04`) reuses
 //! these snapshots behind a durable journal + `PushAggregates` gRPC sink; the
-//! Open_source build logs them to stdout.
+//! Open_Source  build logs them to stdout.
 
 #![forbid(unsafe_code)]
 
@@ -129,7 +129,7 @@ struct DrainedCounts {
 /// A drained 10 s window — the numbers-only snapshot emitted off the node.
 ///
 /// Field names and meanings match `enterprise/04` §3.1 so the Enterprise flush
-/// adopts them unchanged. Open_source v1 omits the per-namespace split.
+/// adopts them unchanged. Open_Source  v1 omits the per-namespace split.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct Aggregate {
     /// Per-agent monotonic flush counter (0-based).
@@ -137,7 +137,7 @@ pub struct Aggregate {
     /// Wall-clock window bounds (ms since epoch), supplied by the caller.
     pub window_start_ms: i64,
     pub window_end_ms: i64,
-    /// Active governance-policy generation, supplied by the caller (Open_source:
+    /// Active governance-policy generation, supplied by the caller (Open_Source :
     /// the `AgentConfig::policy_fingerprint`, `core/06` §3.1).
     pub policy_version: u64,
     pub events_in: u64,
@@ -183,7 +183,7 @@ pub struct Metrics {
 }
 
 impl Metrics {
-    /// New register for the given policy generation (the Open_source binary passes
+    /// New register for the given policy generation (the Open_Source  binary passes
     /// `AgentConfig::policy_fingerprint`; tests may pass `0`).
     #[must_use]
     pub fn new(policy_version: u64) -> Self {
@@ -229,9 +229,9 @@ impl Metrics {
 /// window through a `Sink`, decoupling *what was measured* from *where it goes*
 /// — the seam the editions boundary runs along (`core/06` §3.3, `CLAUDE.md` §3):
 ///
-/// - **Open_source**: the binary's `StdoutSink` logs numbers to stdout.
+/// - **Open_Source **: the binary's `StdoutSink` logs numbers to stdout.
 /// - **Enterprise**: a durable sink records each window and ships it to a
-///   Control Plane. This Open_source agent links none of it.
+///   Control Plane. This Open_Source  agent links none of it.
 ///
 /// A delivery failure must never disturb telemetry — the driver logs it and
 /// continues; metrics are not on the fail-open payload path.
@@ -251,7 +251,7 @@ pub enum SinkError {
 }
 
 // This crate stays edition-neutral: it defines the `Sink` trait and the
-// Open_source `StdoutSink` seam; it does not embed any Control-Plane sink.
+// Open_Source  `StdoutSink` seam; it does not embed any Control-Plane sink.
 
 #[cfg(test)]
 mod tests {

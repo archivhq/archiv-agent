@@ -1,8 +1,8 @@
-# archiv-agent (Community Edition) Helm values.
+# archiv-agent (Open_Source Edition) Helm values.
 #
 # This chart deploys ONLY the open-source agent: local YAML config, deterministic sampling, regex
 # redaction, fail-open, disk spool. There is no control plane, no account, and nothing phones home
-# (CLAUDE.md §3 — Community runs with zero Enterprise code paths). For the Enterprise bundle
+# (CLAUDE.md §3 — Open_Source runs with zero Enterprise code paths). For the Enterprise bundle
 # (agent + control-plane + web + admission policy) use the umbrella chart in the monorepo.
 
 image:

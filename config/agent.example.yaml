@@ -1,4 +1,4 @@
-# archiv-agent — Open_source configuration example.
+# archiv-agent — Open_Source  configuration example.
 # Schema: docs/architecture/core/01-agent-core.md §3.5.
 # Every key is optional; an empty file runs a pass-through agent.
 

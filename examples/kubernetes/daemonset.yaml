@@ -1,4 +1,4 @@
-# archiv-agent (Community Edition) — raw DaemonSet manifests.
+# archiv-agent (Open_Source Edition) — raw DaemonSet manifests.
 # Prefer the Helm chart (deploy/helm/archiv-agent) for real deployments; this is the no-Helm path.
 #
 #   kubectl apply -f examples/kubernetes/daemonset.yaml

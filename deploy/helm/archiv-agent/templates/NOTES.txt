@@ -1,4 +1,4 @@
-archiv-agent (Community Edition) is installed as a DaemonSet in namespace "{{ .Release.Namespace }}".
+archiv-agent (Open_Source Edition) is installed as a DaemonSet in namespace "{{ .Release.Namespace }}".
 
 Image:
   {{ include "archiv-agent.image" . }}

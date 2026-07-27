@@ -1,7 +1,7 @@
 apiVersion: v2
 name: archiv-agent
 description: >-
-  Archiv agent (Community Edition) — a fail-open OTLP governance proxy that runs as a per-node
+  Archiv agent (Open_Source Edition) — a fail-open OTLP governance proxy that runs as a per-node
   DaemonSet: deterministic sampling, regex PII redaction (CWE-532), and a durable disk spool.
   Apache-2.0; no control plane, no account, no phone-home.
 type: application

@@ -1,4 +1,4 @@
-# Release pipeline for archiv-agent (Community Edition).
+# Release pipeline for archiv-agent (Open_Source Edition).
 #
 # Trigger: pushing a version tag (v1.2.3). Enforces the trust/03 §3.3 gate order:
 #   lint -> tests -> dep scans -> build -> SBOM -> scan -> sign -> attest -> push.
@@ -132,7 +132,7 @@ jobs:
             --type spdxjson \
             "${IMAGE}@${{ steps.build.outputs.digest }}"
 
-  # ── Community binary tarball: checksummed + cosign sign-blob, attached to the GitHub Release.
+  # ── Open_Source binary tarball: checksummed + cosign sign-blob, attached to the GitHub Release.
   binaries:
     needs: checks
     runs-on: ubuntu-24.04

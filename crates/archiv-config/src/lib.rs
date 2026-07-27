@@ -1,4 +1,4 @@
-//! Open_source YAML configuration loader (`docs/architecture/core/01` §3.5).
+//! Open_Source  YAML configuration loader (`docs/architecture/core/01` §3.5).
 //!
 //! Parses `/etc/archiv/agent.yaml` into typed structs and maps them to the
 //! pipeline's domain types (`archiv_redact::RuleSpec`, sampling policy data).

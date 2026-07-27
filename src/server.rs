@@ -38,7 +38,7 @@ use crate::spool::Spool;
 /// Shared server state (cheap to clone via `Arc`). The pipeline sits behind an
 /// `ArcSwap` so the Enterprise policy applier can atomically install a rebuilt
 /// pipeline (new WASM modules from a pushed bundle) without dropping in-flight
-/// events (`core/01` §3). Open_source builds swap it exactly once at startup.
+/// events (`core/01` §3). Open_Source  builds swap it exactly once at startup.
 pub struct AppState {
     pub pipeline: arc_swap::ArcSwap<Pipeline>,
     /// Destination endpoint, or `None` for validate-only (no forwarding).

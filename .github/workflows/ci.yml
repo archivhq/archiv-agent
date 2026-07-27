@@ -1,4 +1,4 @@
-# Continuous integration for archiv-agent (Open_source Edition).
+# Continuous integration for archiv-agent (Open_Source  Edition).
 # lint -> test -> dependency scan.
 
 name: ci
