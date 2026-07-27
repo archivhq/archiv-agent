@@ -50,7 +50,7 @@ For a single pipeline you configure by hand, the Collector is a good answer, and
 doesn't try to replace it — you can run `archiv-agent` in front of, behind, or instead of a
 Collector, and most teams start by putting it in front.
 
-Archiv exists for the case where telemetry has to be *governed* rather than merely
+Archiv exists for the case where telemetry has to be _governed_ rather than merely
 processed: where dropping the wrong log during an incident is a real cost, where a sampling
 decision needs to be explainable to an auditor months later, and where the policy applies to
 a fleet rather than a file.
@@ -109,14 +109,14 @@ Set `ARCHIV_CONFIG` to a YAML file. Every key is optional; omitted sections are 
 Full annotated example: [`config/agent.example.yaml`](config/agent.example.yaml).
 
 ```yaml
-sampling:                                  # first matching rule wins
-  default_target: 100                      # percent kept; 100 = sampling off
+sampling: # first matching rule wins
+  default_target: 100 # percent kept; 100 = sampling off
   rules:
-    - match: { namespace: "security-audit" }   # never sample audit trails
+    - match: { namespace: "security-audit" } # never sample audit trails
       target: 100
-    - match: { namespace: "payments" }         # never sample payments
+    - match: { namespace: "payments" } # never sample payments
       target: 100
-    - match: { severity_lte: "DEBUG" }         # keep 10% of debug logs
+    - match: { severity_lte: "DEBUG" } # keep 10% of debug logs
       target: 10
 
 redaction:
@@ -128,7 +128,7 @@ redaction:
 
 export:
   otlp_endpoint: "https://otlp.your-vendor.com:4318"
-  spool_dir: "/var/lib/archiv/spool"       # survives vendor outages
+  spool_dir: "/var/lib/archiv/spool" # survives vendor outages
 ```
 
 ```sh
@@ -144,7 +144,7 @@ agent reports observed keep/drop counters at `/metrics` so you can measure the r
 before committing to a policy.
 
 > Run the agent in `dry_run: true` to emit those counters while forwarding everything, and
-> see the savings a policy *would* produce before it drops anything.
+> see the savings a policy _would_ produce before it drops anything.
 
 ### Sampling determinism
 
@@ -170,12 +170,12 @@ traces, and a policy can be replayed against past data for audit.
      Required: hardware spec, payload shape/size, generator, config used, and a single
      command a reader can run on their own machine. -->
 
-| Metric                  | Result | Conditions |
-| ----------------------- | ------ | ---------- |
-| Throughput (per core)   | _TBD_  | _TBD_      |
-| p99 processing latency  | _TBD_  | _TBD_      |
-| RSS at sustained load   | _TBD_  | _TBD_      |
-| Overhead vs. direct OTLP| _TBD_  | _TBD_      |
+| Metric                   | Result | Conditions |
+| ------------------------ | ------ | ---------- |
+| Throughput (per core)    | _TBD_  | _TBD_      |
+| p99 processing latency   | _TBD_  | _TBD_      |
+| RSS at sustained load    | _TBD_  | _TBD_      |
+| Overhead vs. direct OTLP | _TBD_  | _TBD_      |
 
 Reproduce on your own hardware:
 
@@ -206,9 +206,9 @@ Runs as a DaemonSet, one agent per node. Chart reference: [`deploy/helm/`](deplo
 - [`examples/terraform/`](examples/terraform/) — ECS and EC2 modules
 - [`examples/collector/`](examples/collector/) — running alongside an OTel Collector gateway
 
-## Community and Enterprise
+## Open_source and Enterprise
 
-This repository is the complete Community Edition — full sampling and redaction, fail-open
+This repository is the complete Open_source Edition — full sampling and redaction, fail-open
 resiliency, local YAML config. It runs forever, free, with no control plane and no
 limitations bolted on to push you to upgrade.
 

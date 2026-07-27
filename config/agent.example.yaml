@@ -1,14 +1,14 @@
-# archiv-agent — Community configuration example.
+# archiv-agent — Open_source configuration example.
 # Schema: docs/architecture/core/01-agent-core.md §3.5.
 # Every key is optional; an empty file runs a pass-through agent.
 
 ingest:
-  grpc_endpoint: "0.0.0.0:4317"   # OTLP/gRPC
-  http_endpoint: "0.0.0.0:4318"   # OTLP/HTTP
+  grpc_endpoint: "0.0.0.0:4317" # OTLP/gRPC
+  http_endpoint: "0.0.0.0:4318" # OTLP/HTTP
   channel_capacity: 8192
 
-sampling:                          # first match wins (core/03 §3.3)
-  default_target: 100              # percent kept; 100 = disabled
+sampling: # first match wins (core/03 §3.3)
+  default_target: 100 # percent kept; 100 = disabled
   rules:
     # Sampling is deterministic over trace_id — anyone who can influence trace-id
     # generation can bias which records survive. Sample COST telemetry only: pin
@@ -16,14 +16,14 @@ sampling:                          # first match wins (core/03 §3.3)
     # their own tracks.
     - match: { namespace: "security-audit" } # never sample security/audit logs
       target: 100
-    - match: { namespace: "payments" }   # never sample payments
+    - match: { namespace: "payments" } # never sample payments
       target: 100
-    - match: { severity_lte: "DEBUG" }   # keep 10% of debug logs
+    - match: { severity_lte: "DEBUG" } # keep 10% of debug logs
       target: 10
-    - match: { namespace: "batch-*" }    # keep 25% of batch namespaces
+    - match: { namespace: "batch-*" } # keep 25% of batch namespaces
       target: 25
 
-redaction:                         # CWE-532 mitigation at the edge (core/04 §3)
+redaction: # CWE-532 mitigation at the edge (core/04 §3)
   regex_rules:
     - name: email
       pattern: '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'
@@ -33,7 +33,7 @@ redaction:                         # CWE-532 mitigation at the edge (core/04 §3
 export:
   otlp_endpoint: "https://otlp.example.com:4318" # OTLP/HTTP; agent POSTs /v1/logs
   spool_dir: "/var/lib/archiv/spool"
-  spool_max_bytes: 536870912       # 512 MiB
+  spool_max_bytes: 536870912 # 512 MiB
 
 limits:
-  max_body_bytes: 4194304          # 4 MiB
+  max_body_bytes: 4194304 # 4 MiB

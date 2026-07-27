@@ -1,4 +1,4 @@
-# archiv-agent (Community Edition, Apache-2.0) — standalone ignore.
+# archiv-agent (Open_source Edition, Apache-2.0) — standalone ignore.
 #
 # This crate is published open-core as its own repository; when `agent/` is the
 # git root, these rules apply. The umbrella repo already ignores /agent/target/

@@ -1,4 +1,4 @@
-//! Static regex redaction engine (`docs/architecture/core/04` §3) — Community.
+//! Static regex redaction engine (`docs/architecture/core/04` §3) — Open_source.
 //!
 //! One contract shared with the Enterprise WASM engine: emit `Redaction`
 //! replacement spans (`core/02` §3.2). Payloads are never rewritten here;

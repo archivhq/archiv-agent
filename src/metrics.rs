@@ -5,9 +5,9 @@
 //! clock. Every [`FLUSH_INTERVAL`] it drains the window and hands the
 //! numbers-only [`Aggregate`] to a [`Sink`].
 //!
-//! [`StdoutSink`] is the Community sink — it logs numbers to stdout via
+//! [`StdoutSink`] is the Open_source sink — it logs numbers to stdout via
 //! `tracing` (`CLAUDE.md` §3 auditability). The Enterprise edition supplies its
-//! own durable sink that ships aggregates to a Control Plane; this Community
+//! own durable sink that ships aggregates to a Control Plane; this Open_source
 //! agent links none of it.
 
 use std::future::Future;
@@ -24,7 +24,7 @@ fn now_ms() -> i64 {
         .unwrap_or(0)
 }
 
-/// Community aggregate sink: one numbers-only `tracing` line per window on
+/// Open_source aggregate sink: one numbers-only `tracing` line per window on
 /// `target: "archiv.metrics"`. No payload can appear — every field is a number.
 pub struct StdoutSink;
 
