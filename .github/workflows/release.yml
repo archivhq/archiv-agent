@@ -154,7 +154,7 @@ jobs:
             -o spdx-json=sbom.spdx.json
 
       - name: Vulnerability scan
-        uses: aquasecurity/trivy-action@v0.29.0
+        uses: aquasecurity/trivy-action@v0.30.0
         with:
           image-ref: ${{ env.IMAGE }}@${{ steps.build.outputs.digest }}
           format: table
